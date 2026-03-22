@@ -52,6 +52,7 @@ bool susfs_starts_with(const char *str, const char *prefix) {
 DEFINE_STATIC_SRCU(susfs_srcu_sus_path_loop);
 static DEFINE_SPINLOCK(susfs_spin_lock_sus_path);
 static LIST_HEAD(LH_SUS_PATH_LOOP);
+
 const struct qstr susfs_fake_qstr_name = QSTR_INIT("..5.u.S", 7); // used to re-test the dcache lookup, make sure you don't have file named like this!!
 
 void susfs_add_sus_path(void __user **user_info) {
@@ -165,7 +166,7 @@ void susfs_run_sus_path_loop(void) {
 				}
 				set_bit(AS_FLAGS_SUS_PATH, &fi->inode.i_mapping->flags);
 				SUSFS_LOGI("re-flag AS_FLAGS_SUS_PATH on path '%s', fi->inode.i_ino: '%lu', fi->inode.i_mapping->flags: 0x%lx\n",
-						   cursor->target_pathname, fi->inode.i_ino, fi->inode.i_mapping->flags);
+						cursor->target_pathname, fi->inode.i_ino, fi->inode.i_mapping->flags);
 			} else {
 				set_bit(AS_FLAGS_SUS_PATH, &inode->i_mapping->flags);
 				SUSFS_LOGI("re-flag AS_FLAGS_SUS_PATH on path '%s', inode->i_ino: '%lu', inode->i_mapping->flags: 0x%lx\n",
@@ -264,6 +265,7 @@ out_copy_to_user:
 #ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
 static DEFINE_SPINLOCK(susfs_spin_lock_sus_kstat);
 static DEFINE_HASHTABLE(SUS_KSTAT_HLIST, 10);
+
 static int susfs_mark_inode_sus_kstat(char *target_pathname, struct st_susfs_sus_kstat_hlist *new_entry) {
 	struct path path;
 	struct inode *inode = NULL;
@@ -438,8 +440,7 @@ out_add_new_entry:
 	info.err = susfs_mark_inode_sus_kstat(new_entry->info.target_pathname, new_entry);
 	if (info.err) {
 		kfree(new_entry);
-
-	goto out_copy_to_user;
+		goto out_copy_to_user;
 	}
 	SUSFS_LOGI("updating target_ino from '%lu' to '%lu' for pathname: '%s' in SUS_KSTAT_HLIST\n",
 					new_entry->info.target_ino, info.target_ino, info.target_pathname);
@@ -447,6 +448,7 @@ out_add_new_entry:
 	hash_add_rcu(SUS_KSTAT_HLIST, &new_entry->node, info.target_ino);
 	spin_unlock(&susfs_spin_lock_sus_kstat);
 	info.err = 0;
+
 out_copy_to_user:
 	if (copy_to_user(&((struct st_susfs_sus_kstat __user*)*user_info)->err, &info.err, sizeof(info.err))) {
 		info.err = -EFAULT;
@@ -766,7 +768,7 @@ void susfs_add_open_redirect(void __user **user_info) {
 	if (info.err) {
 		SUSFS_LOGE("failed opening redirected file '%s'\n", info.redirected_pathname);
 		goto out_copy_to_user;
-}
+	}
 
 	info.err = kern_path(info.target_pathname, 0, &target_path);
 	if (info.err) {
@@ -781,11 +783,22 @@ void susfs_add_open_redirect(void __user **user_info) {
 		goto out_path_put_target_path;
 	}
 
-	redirected_inode = d_backing_inode(redirected_path.dentry);
-	if (!redirected_inode || !redirected_inode->i_mapping) {
-		SUSFS_LOGE("redirected_inode || redirected_inode->i_mapping is NULL\n");
+	target_inode = d_backing_inode(target_path.dentry);
+	if (!target_inode || !target_inode->i_mapping) {
+		SUSFS_LOGE("target_inode || target_inode->i_mapping is NULL\n");
 		info.err = -ENOENT;
 		goto out_path_put_target_path;
+	}
+
+	if (redirected_inode->i_sb->s_magic == FUSE_SUPER_MAGIC ||
+	    target_inode->i_sb->s_magic == FUSE_SUPER_MAGIC) {
+		SUSFS_LOGE("FUSE fs is not supported for open_redirect feature\n");
+		info.err = -EINVAL;
+		goto out_path_put_target_path;
+	}
+
+	new_entry_target = kmalloc(sizeof(struct st_susfs_open_redirect_hlist), GFP_KERNEL);
+	if (!new_entry_target) {
 		info.err = -ENOMEM;
 		goto out_path_put_target_path;
 	}
@@ -864,8 +877,8 @@ out_add_new_entry:
 	// we need to mark both target and redirected path inode just for spoofing readlink as well
 	set_bit(AS_FLAGS_OPEN_REDIRECT, &redirected_inode->i_mapping->flags);
 	set_bit(AS_FLAGS_OPEN_REDIRECT, &target_inode->i_mapping->flags);
-
 	spin_unlock(&susfs_spin_lock_open_redirect);
+
 	info.err = 0;
 out_path_put_target_path:
 	path_put(&target_path);
@@ -921,8 +934,8 @@ int susfs_open_redirect_spoof_do_sys_openat(struct inode *inode, struct filename
 				err = -ENOMEM;
 				goto out_srcu_read_unlock;
 			}
-			new_filename = getname_kernel(entry->info.redirected_pathname);
-			if (IS_ERR(new_filename)) {
+			putname(*tmp_filename);
+			*tmp_filename = new_filename;
 			err = 0;
 			goto out_srcu_read_unlock;
 		}
@@ -1046,7 +1059,7 @@ int susfs_open_redirect_spoof_show_map_vma(struct inode *inode, unsigned long *o
 				return -ENOMEM;
 			}
 			SUSFS_LOGI("spoof maps ino/dev/name for redirected path: '%s'\n",
-					   entry->info.target_pathname);
+					entry->info.target_pathname);
 			*out_ino = entry->redirected_ino;
 			*out_dev = entry->redirected_dev;
 			strncpy(spoofed_name, entry->info.redirected_pathname, SUSFS_MAX_LEN_PATHNAME - 1);
@@ -1322,7 +1335,6 @@ static int watch_one_dir(struct watch_dir *wd)
  * synchronize_srcu on the same SRCU struct, causing a permanent deadlock).
  * Cleanup is deferred to a delayed_work that runs outside the SRCU context.
  */
-
 static SUSFS_DECL_FSNOTIFY_OPS(susfs_handle_sdcard_inode_event)
 {
 	if (!file_name || strlen((const char *)file_name) != 7 ||
