@@ -244,7 +244,9 @@ enum power_supply_property {
 	POWER_SUPPLY_PROP_USB_OTG,
 	POWER_SUPPLY_PROP_CHARGE_ENABLED,
 	POWER_SUPPLY_PROP_SET_SHIP_MODE,
+#ifdef CONFIG_BATT_VERIFY_BY_DS28E16_PIPA
 	POWER_SUPPLY_PROP_SHIPMODE_COUNT_RESET,
+#endif
 	POWER_SUPPLY_PROP_REAL_TYPE,
 	POWER_SUPPLY_PROP_HVDCP3_TYPE,
 	POWER_SUPPLY_PROP_FAKE_HVDCP3,
@@ -603,7 +605,7 @@ enum power_supply_notifier_events {
 union power_supply_propval {
 	int intval;
 	const char *strval;
-        int64_t int64val;
+	int64_t int64val;
 #if defined(CONFIG_BATT_VERIFY_BY_DS28E16) || defined(CONFIG_BATT_VERIFY_BY_DS28E16_PIPA)
 	unsigned char arrayval[50];
 #endif

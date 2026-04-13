@@ -562,10 +562,8 @@ static int get_val(struct range_data *range, int hysteresis, int current_index,
 			 * Stay in the current index, threshold is not higher
 			 * by hysteresis amount
 			 */
-			if (*new_index < 5) {
-				*new_index = current_index;
-				*val = range[current_index].value;
-			}
+			*new_index = current_index;
+			*val = range[current_index].value;
 		}
 	} else if (*new_index == current_index - 1) {
 		if (threshold > range[*new_index].high_threshold - hysteresis) {
@@ -573,10 +571,8 @@ static int get_val(struct range_data *range, int hysteresis, int current_index,
 			 * stay in the current index, threshold is not lower
 			 * by hysteresis amount
 			 */
-			if (*new_index >= 4) {
-				*new_index = current_index;
-				*val = range[current_index].value;
-			}
+			*new_index = current_index;
+			*val = range[current_index].value;
 		}
 	}
 	return 0;

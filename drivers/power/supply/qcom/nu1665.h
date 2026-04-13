@@ -115,13 +115,13 @@ do {										\
 #define nuvolta_info(fmt, ...)							\
 do {										\
 	if (log_level >= 1)							\
-		printk(KERN_INFO "[NUVOLTA_1665] " fmt, ##__VA_ARGS__);	\
+		printk(KERN_ERR "[NUVOLTA_1665] " fmt, ##__VA_ARGS__);	\
 } while (0)
 
 #define nuvolta_dbg(fmt, ...)							\
 do {										\
 	if (log_level >= 2)							\
-		printk(KERN_DEBUG "[NUVOLTA_1665] " fmt, ##__VA_ARGS__);	\
+		printk(KERN_ERR "[NUVOLTA_1665] " fmt, ##__VA_ARGS__);	\
 } while (0)
 
 enum FW_UPDATE_CMD {
@@ -202,63 +202,63 @@ enum wls_adapter_type {
 };
 
 struct nuvolta_1665_chg {
-	struct i2c_client *client;
-	struct device *dev;
-	struct regmap *regmap;
+	struct i2c_client		*client;
+	struct device			*dev;
+	struct regmap			*regmap;
 	// irq and gpio
 	unsigned int tx_on_gpio;
 	unsigned int reverse_boost_gpio;
 	unsigned int irq_gpio;
 	unsigned int power_good_gpio;
 	unsigned int power_good_irq;
-	unsigned int irq;
+    unsigned int irq;
 	unsigned int enable_gpio;
-	unsigned int hall3_irq;
-	unsigned int hall4_irq;
-	unsigned int hall3_gpio;
+    unsigned int hall3_irq;
+    unsigned int hall4_irq;
+    unsigned int hall3_gpio;
 	unsigned int hall4_gpio;
 	int hall3_online;
 	int hall4_online;
 	unsigned long pen_val;
 	void *pen_v;
-	int is_reverse_mode;
+    int is_reverse_mode;
 	int is_boost_mode;
-	int reverse_vout;
+    int reverse_vout;
 	int reverse_iout;
 	int reverse_temp;
-	int reverse_pen_soc;
-	u8 pen_mac_data[6];
+    int reverse_pen_soc;
+    u8 pen_mac_data[6];
 	int power_off_mode;
 	int chip_ok;
 	struct pinctrl *idt_pinctrl;
 	struct pinctrl_state *idt_gpio_active;
 	struct pinctrl_state *idt_gpio_suspend;
 	// delay works
-	struct delayed_work wireless_int_work;
-	struct delayed_work wireless_pg_det_work;
-	struct delayed_work chg_monitor_work;
-	struct delayed_work reverse_chg_state_work;
-	struct delayed_work reverse_dping_state_work;
-	struct delayed_work init_detect_work;
-	struct delayed_work factory_reverse_start_work;
-	struct delayed_work factory_reverse_stop_work;
-	struct delayed_work delay_report_status_work;
-	struct delayed_work rx_alarm_work;
-	struct delayed_work rx_enable_usb_work;
-	struct delayed_work max_power_control_work;
-	struct delayed_work fw_state_work;
+	struct delayed_work    wireless_int_work;
+	struct delayed_work    wireless_pg_det_work;
+	struct delayed_work    chg_monitor_work;
+	struct delayed_work    reverse_chg_state_work;
+	struct delayed_work    reverse_dping_state_work;
+	struct delayed_work    init_detect_work;
+	struct delayed_work    factory_reverse_start_work;
+	struct delayed_work    factory_reverse_stop_work;
+	struct delayed_work    delay_report_status_work;
+	struct delayed_work    rx_alarm_work;
+	struct delayed_work    rx_enable_usb_work;
+	struct delayed_work    max_power_control_work;
+	struct delayed_work    fw_state_work;
 	struct delayed_work hall3_irq_work;
 	struct delayed_work hall4_irq_work;
-	struct delayed_work pen_notifier_work;
-	struct delayed_work reverse_sent_state_work;
-	struct delayed_work reverse_chg_work;
-	struct delayed_work probe_fw_download_work;
+    struct delayed_work pen_notifier_work;
+    struct delayed_work reverse_sent_state_work;
+    struct delayed_work reverse_chg_work;
+	struct delayed_work	probe_fw_download_work;
 	// lock
-	struct mutex wireless_chg_int_lock;
-	struct mutex reverse_op_lock;
+	struct mutex    wireless_chg_int_lock;
+    struct mutex    reverse_op_lock;
 	// alarm
-	struct alarm reverse_dping_alarm;
-	struct alarm reverse_chg_alarm;
+	struct alarm	reverse_dping_alarm;
+	struct alarm	reverse_chg_alarm;
 	//vote
 	struct votable *fcc_votable;
 	struct votable *icl_votable;
@@ -272,7 +272,7 @@ struct nuvolta_1665_chg {
 	struct power_supply *batt_psy;
 	struct power_supply *wireless_psy;
 	struct regulator *pmic_boost;
-	struct power_supply *nuvo_psy;
+    struct power_supply		*nuvo_psy;
 	// driver parameters
 	u8 epp;
 	u8 epp_tx_id_h;
@@ -296,7 +296,7 @@ struct nuvolta_1665_chg {
 	int chg_phase;
 	int is_reverse_chg;
 	bool fw_update;
-	int fw_version;
+    int fw_version;
 	bool is_car_tx;
 	bool is_music_tx;
 	bool is_train_tx;

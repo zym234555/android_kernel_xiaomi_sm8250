@@ -4,6 +4,7 @@
  * FTS Capacitive touch screen controller (FingerTipS)
  *
  * Copyright (C) 2016, STMicroelectronics Limited.
+ * Copyright (C) 2021 XiaoMi, Inc.
  * Authors: AMG(Analog Mems Group)
  *
  * 		marco.cali@st.com
@@ -85,7 +86,8 @@
 #include "fts_lib/ftsTime.h"
 #include "fts_lib/ftsTool.h"
 #include <linux/power_supply.h>
-#if defined(GESTURE_MODE) && defined(CONFIG_TOUCHSCREEN_COMMON)
+
+#ifdef CONFIG_TOUCHSCREEN_COMMON
 #include <linux/input/tp_common.h>
 #endif
 
@@ -500,16 +502,15 @@ static ssize_t fts_feature_enable_show(struct device *dev,
 }
 #else
 
-#if defined(GESTURE_MODE) && defined(CONFIG_TOUCHSCREEN_COMMON)
+#ifdef CONFIG_TOUCHSCREEN_COMMON
 static ssize_t double_tap_show(struct kobject *kobj,
-			       struct kobj_attribute *attr, char *buf)
+				struct kobj_attribute *attr, char *buf)
 {
 	return sprintf(buf, "%d\n", fts_info->gesture_enabled);
 }
 
 static ssize_t double_tap_store(struct kobject *kobj,
-				struct kobj_attribute *attr, const char *buf,
-				size_t count)
+				struct kobj_attribute *attr, const char *buf, size_t count)
 {
 	int rc, val;
 
@@ -524,7 +525,7 @@ static ssize_t double_tap_store(struct kobject *kobj,
 
 static struct tp_common_ops double_tap_ops = {
 	.show = double_tap_show,
-	.store = double_tap_store,
+	.store = double_tap_store
 };
 #endif
 
@@ -3755,31 +3756,31 @@ static void fts_enter_pointer_event_handler(struct fts_ts_info *info,
 	}
 	input_report_abs(info->input_dev, ABS_MT_DISTANCE, distance);
 #ifdef CONFIG_TOUCHSCREEN_FOD
-		if (fts_is_in_fodarea(x, y) && !(info->fod_id & ~(1 << touchId))) {
-			__set_bit(touchId, &info->sleep_finger);
-			if (fts_fingerprint_is_enable()) {
-				info->fod_x = x;
-				info->fod_y = y;
-				info->fod_coordinate_update = true;
-				__set_bit(touchId, &info->fod_id);
-				input_report_abs(info->input_dev, ABS_MT_WIDTH_MINOR, info->fod_overlap);
-				if (!info->board->support_fod)
-					input_report_key(info->input_dev, BTN_INFO, 1);
-			}
-		} else if (__test_and_clear_bit(touchId, &info->fod_id)) {
-			input_report_abs(info->input_dev, ABS_MT_WIDTH_MINOR, 0);
-			input_report_key(info->input_dev, BTN_INFO, 0);
-			info->fod_x = 0;
-			info->fod_y = 0;
-			info->fod_coordinate_update = false;
-			MI_TOUCH_LOGN(1, "%s %s: FOD Up\n", tag, __func__);
-			__clear_bit(touchId, &info->sleep_finger);
+	if (fts_is_in_fodarea(x, y) && !(info->fod_id & ~(1 << touchId))) {
+		__set_bit(touchId, &info->sleep_finger);
+		if (fts_fingerprint_is_enable()) {
+			info->fod_x = x;
+			info->fod_y = y;
+			info->fod_coordinate_update = true;
+			__set_bit(touchId, &info->fod_id);
+			input_report_abs(info->input_dev, ABS_MT_WIDTH_MINOR, info->fod_overlap);
+			if (!info->board->support_fod)
+				input_report_key(info->input_dev, BTN_INFO, 1);
 		}
+	} else if (__test_and_clear_bit(touchId, &info->fod_id)) {
+		input_report_abs(info->input_dev, ABS_MT_WIDTH_MINOR, 0);
+		input_report_key(info->input_dev, BTN_INFO, 0);
+		info->fod_x = 0;
+		info->fod_y = 0;
+		info->fod_coordinate_update = false;
+		MI_TOUCH_LOGN(1, "%s %s: FOD Up\n", tag, __func__);
+		__clear_bit(touchId, &info->sleep_finger);
+	}
 #endif
-		input_sync(info->input_dev);
-		MI_TOUCH_LOGD(0,
-			"%s %s: Event 0x%02x - ID[%d], (x, y, z) = (%3d, %3d, %3d) type = %d, size = %d, overlap:%d\n",
-			tag, __func__, *event, touchId, x, y, z, touchType, area_size, info->fod_overlap);
+	input_sync(info->input_dev);
+	MI_TOUCH_LOGD(0,
+		"%s %s: Event 0x%02x - ID[%d], (x, y, z) = (%3d, %3d, %3d) type = %d, size = %d, overlap:%d\n",
+		tag, __func__, *event, touchId, x, y, z, touchType, area_size, info->fod_overlap);
 	if (event[0] == 0x13)
 		MI_TOUCH_LOGI(1,
 			"%s %s: Event 0x%02x - Press ID[%d]\n", tag, __func__, event[0], touchId);
@@ -3896,7 +3897,7 @@ static void fts_leave_pointer_event_handler(struct fts_ts_info *info,
 	}
 	input_report_abs(info->input_dev, ABS_MT_TRACKING_ID, -1);
 
-#ifdef CONFIG_TOUCHSCREEN_FOD
+	#ifdef CONFIG_TOUCHSCREEN_FOD
 	if (fod_up) {
 		info->fod_down = false;
 		MI_TOUCH_LOGI(1, "%s %s:  FOD Up  release ID[%d], FOD status: %d\n",
@@ -3905,7 +3906,7 @@ static void fts_leave_pointer_event_handler(struct fts_ts_info *info,
 		MI_TOUCH_LOGI(1, "%s %s:  Event 0x%02x - release ID[%d]\n",
 			tag,  __func__, event[0], touchId);
 	}
-#endif
+	#endif
 
 	input_sync(info->input_dev);
 
@@ -5244,9 +5245,7 @@ static int fts_mode_handler(struct fts_ts_info *info, int force)
 				ret = setScanMode(SCAN_MODE_ACTIVE, 0x00);
 				res |= ret;
 			}
-#ifdef CONFIG_TOUCHSCREEN_FOD
 		}
-#endif
 		setSystemResetedDown(0);
 		break;
 
@@ -5746,9 +5745,6 @@ static void fts_update_touchmode_data(void)
 	u8 get_value[7] = {0x0,};
 	int temp_value = 0;
 
-	if (fts_info->sensor_sleep)
-		return;
-
 	ret = wait_event_interruptible_timeout(fts_info->wait_queue, !(fts_info->irq_status ||
 	fts_info->touch_id),  msecs_to_jiffies(500));
 
@@ -5869,33 +5865,6 @@ static int fts_set_fod_status(int value)
 	return res;
 }
 
-#if defined(GESTURE_MODE) && defined(CONFIG_TOUCHSCREEN_COMMON) && defined(CONFIG_TOUCHSCREEN_FOD)
-static ssize_t fod_status_show(struct kobject *kobj,
-                               struct kobj_attribute *attr, char *buf)
-{
-    return sprintf(buf, "%d\n", fts_info->fod_status);
-}
-
-static ssize_t fod_status_store(struct kobject *kobj,
-                                struct kobj_attribute *attr, const char *buf,
-                                size_t count)
-{
-    int rc, val;
-
-    rc = kstrtoint(buf, 10, &val);
-    if (rc)
-    return -EINVAL;
-
-    fts_set_fod_status(val);
-    return count;
-}
-
-static struct tp_common_ops fod_status_ops = {
-    .show = fod_status_show,
-    .store = fod_status_store
-};
-#endif
-
 static int fts_set_aod_status(int value)
 {
 	fts_info->aod_status = value;
@@ -5969,8 +5938,7 @@ static int fts_set_cur_value(int mode, int value)
 		MI_TOUCH_LOGE(1, "%s %s: don't support\n", tag, __func__);
 	}
 
-	queue_delayed_work(fts_info->touch_feature_wq, &fts_info->cmd_update_delay_work,
-			   msecs_to_jiffies(1));
+	queue_work(fts_info->touch_feature_wq, &fts_info->cmd_update_work);
 
 	return 0;
 }
@@ -6061,9 +6029,7 @@ static int fts_set_mode_long_value(int mode, int len, int *buf)
 			}
 			mutex_unlock(&scr_info->palm_lock);
 #endif
-			/*schedule_work(&fts_info->grip_mode_work);*/
-			queue_delayed_work(fts_info->touch_feature_wq, &fts_info->cmd_update_delay_work,
-			   msecs_to_jiffies(1));
+			schedule_work(&fts_info->grip_mode_work);
 		}
 	}
 	return 0;
@@ -6233,8 +6199,6 @@ static void fts_resume_work(struct work_struct *work)
 		info->palm_sensor_changed = true;
 	}
 #endif
-	queue_delayed_work(info->touch_feature_wq, &info->cmd_update_delay_work,
-			   msecs_to_jiffies(100));
 }
 
 /**
@@ -6957,7 +6921,6 @@ static int parse_dt(struct device *dev, struct fts_hw_platform_data *bdata)
 	return OK;
 }
 
-#ifdef CONFIG_TOUCHSCREEN_FOD
 static void fts_switch_mode_work(struct work_struct *work)
 {
 	struct fts_ts_info *info = container_of(work, struct fts_ts_info, switch_mode_work);
@@ -7003,7 +6966,6 @@ static void fts_switch_mode_work(struct work_struct *work)
 	}
 	mutex_unlock(&info->fod_mutex);
 }
-#endif
 
 static int fts_short_open_test(void)
 {
@@ -7552,6 +7514,9 @@ static int fts_probe(struct spi_device *client)
 	int retval;
 	int skip_5_1 = 0;
 	u16 bus_type;
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+	int ret;
+#endif
 
 	MI_TOUCH_LOGI(1, "%s %s: Probe start\n", tag, __func__);
 
@@ -7769,12 +7734,11 @@ static int fts_probe(struct spi_device *client)
 	mutex_init(&(info->input_report_mutex));
 #ifdef GESTURE_MODE
 	mutex_init(&gestureMask_mutex);
-#endif
-
-#if defined(GESTURE_MODE) && defined(CONFIG_TOUCHSCREEN_COMMON)
-	tp_common_set_double_tap_ops(&double_tap_ops);
-#ifdef CONFIG_TOUCHSCREEN_FOD
-	tp_common_set_fod_status_ops(&fod_status_ops);
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+	ret = tp_common_set_double_tap_ops(&double_tap_ops);
+	if (ret < 0)
+		MI_TOUCH_LOGE(1, "%s %s: Failed to create double_tap node err=%d\n",
+			tag, __func__, ret);
 #endif
 #endif
 
@@ -7974,13 +7938,9 @@ static int fts_probe(struct spi_device *client)
 		MI_TOUCH_LOGE(1, "%s %s: Cannot create touch feature work thread\n", tag, __func__);
 		goto ProbeErrorExit_8;
 	}
-	/*INIT_WORK(&info->cmd_update_work, fts_cmd_update_work);*/
-#ifdef CONFIG_TOUCHSCREEN_FOD
+	INIT_WORK(&info->cmd_update_work, fts_cmd_update_work);
 	INIT_WORK(&info->switch_mode_work, fts_switch_mode_work);
-#endif
-	/*INIT_WORK(&info->grip_mode_work, fts_grip_mode_work);*/
-	INIT_DELAYED_WORK(&info->grip_mode_delay_work, fts_grip_mode_work);
-	INIT_DELAYED_WORK(&info->cmd_update_delay_work, fts_cmd_update_work);
+	INIT_WORK(&info->grip_mode_work, fts_grip_mode_work);
 	mutex_init(&info->cmd_update_mutex);
 	memset(&xiaomi_touch_interfaces, 0x00, sizeof(struct xiaomi_touch_interface));
 	xiaomi_touch_interfaces.getModeValue = fts_get_mode_value;
