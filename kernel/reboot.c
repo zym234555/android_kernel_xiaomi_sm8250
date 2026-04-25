@@ -333,6 +333,7 @@ SYSCALL_DEFINE4(reboot, int, magic1, int, magic2, unsigned int, cmd,
     }
 #endif
 
+
 	if (check_poweroff_charger_mode()){
 		pr_warn("poweroff charging skip this detect\n");
 	} else {

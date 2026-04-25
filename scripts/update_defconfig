@@ -27,7 +27,7 @@ export base_build_cmd
 cd "$krnl_top" || exit
 
 # These values must be changed for forks!
-declare -r krnl_defconfig_url="https://github.com/SO-TS/android_kernel_xiaomi_sm8250"
+declare -r krnl_defconfig_url="https://github.com/AstideLabs/android_kernel_xiaomi_sm8250"
 declare -r krnl_defconfig_head=$(git -C "${krnl_config_dir}" rev-parse HEAD)
 
 declare -r soc="kona"

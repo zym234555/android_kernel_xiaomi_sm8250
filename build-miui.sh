@@ -227,6 +227,8 @@ scripts/config --file out/.config \
     -e BOOTUP_RECLAIM \
     -e MI_RECLAIM \
     -e RTMM \
+    -d REKERNEL \
+    -d REKERNEL_NETWORK
 
 make $MAKE_ARGS -j$(nproc)
 
