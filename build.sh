@@ -104,7 +104,6 @@ echo "Integrating Baseband-guard..."
 curl -LSs "https://github.com/vc-teahouse/Baseband-guard/raw/main/setup.sh" | bash
 sed -i '/^config LSM$/,/^help$/{ /^[[:space:]]*default/ { /baseband_guard/! s/selinux/selinux,baseband_guard/ } }' security/Kconfig
 
-
 echo "Cleaning..."
 
 rm -rf out/
@@ -139,8 +138,11 @@ else
 fi
 
 scripts/config --file out/.config \
-    -e CONFIG_REKERNEL \
-    -e CONFIG_REKERNEL_NETWORK \
+    -e BBG
+
+scripts/config --file out/.config \
+    -e REKERNEL \
+    -e REKERNEL_NETWORK
 
 make $MAKE_ARGS -j$(nproc)
 
@@ -278,6 +280,8 @@ else
     scripts/config --file out/.config -d KSU
 fi
 
+scripts/config --file out/.config \
+    -e BBG
 
 scripts/config --file out/.config \
     --set-str STATIC_USERMODEHELPER_PATH /system/bin/micd \

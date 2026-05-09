@@ -199,6 +199,8 @@ else
     scripts/config --file out/.config -d KSU
 fi
 
+scripts/config --file out/.config \
+    -e BBG
 
 scripts/config --file out/.config \
     --set-str STATIC_USERMODEHELPER_PATH /system/bin/micd \
