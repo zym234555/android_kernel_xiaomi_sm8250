@@ -6,7 +6,7 @@ on:
       device:
         description: 'Target Device Codename (e.g., lmi, umi)'
         required: true
-        default: 'lmi'
+        default: 'pipa'
         type: choice
         options:
           - psyche
@@ -26,7 +26,7 @@ on:
       script:
         description: 'Select Build Script'
         required: true
-        default: 'build.sh'
+        default: 'build-miui.sh'
         type: choice
         options:
           - build.sh
